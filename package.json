@@ -2,11 +2,12 @@
   "name": "ai-demand-radar",
   "version": "0.1.0",
   "private": true,
+  "allowScripts": ["better-sqlite3", "sharp"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "npm rebuild better-sqlite3"
+    "postinstall": "npm rebuild better-sqlite3 || true; cd node_modules/better-sqlite3 && npx --yes prebuild-install || true"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
