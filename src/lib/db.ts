@@ -75,8 +75,11 @@ function createDb(): Database.Database {
 /** 轻量迁移：给已有库补新列 */
 function migrate(db: Database.Database) {
   const cols = db.prepare("PRAGMA table_info(cards)").all() as { name: string }[];
-  if (!cols.some((c) => c.name === "demand_type")) {
-    db.exec("ALTER TABLE cards ADD COLUMN demand_type TEXT");
+  const have = new Set(cols.map((c) => c.name));
+  for (const col of ["demand_type", "delivery_mode", "skill_name", "capabilities"]) {
+    if (!have.has(col)) {
+      db.exec(`ALTER TABLE cards ADD COLUMN ${col} TEXT`);
+    }
   }
 }
 

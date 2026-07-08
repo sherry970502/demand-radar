@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Card, CardLog } from "@/lib/types";
-import { DEMAND_LABELS, SOURCE_LABELS, STATUS_LABELS } from "@/lib/types";
+import {
+  DEMAND_LABELS,
+  SOURCE_LABELS,
+  STATUS_LABELS,
+  CAPABILITY_TYPE_LABELS,
+  READINESS_LABELS,
+  type Capability,
+} from "@/lib/types";
 import { VERDICT_META, PRIORITY_CLS, parseCategories, fmtTime } from "./utils";
 
 const ACTOR_LABEL: Record<string, string> = {
@@ -244,6 +251,70 @@ export default function CardDetail({
                 <p className="text-sm leading-relaxed text-foreground/90 bg-panel2 border border-line rounded-xl p-3">
                   {card.screening_reason}
                 </p>
+              </section>
+            )}
+
+            {/* 产品呈现方式与能力拆解 */}
+            {card.delivery_mode && (
+              <section>
+                <h3 className="text-xs text-muted font-semibold mb-1.5">产品呈现方式</h3>
+                <div className="bg-panel2 border border-line rounded-xl p-3 flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2 text-sm">
+                    {card.delivery_mode === "skill" ? (
+                      <>
+                        <span className="border rounded px-2 py-0.5 text-emerald-300 border-emerald-400/40 bg-emerald-400/10 text-xs font-semibold">
+                          🧩 单一 Skill
+                        </span>
+                        {card.skill_name && (
+                          <span className="font-medium">{card.skill_name}</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="border rounded px-2 py-0.5 text-orange-300 border-orange-400/40 bg-orange-400/10 text-xs font-semibold">
+                        🔗 组合交付（多能力/服务串联）
+                      </span>
+                    )}
+                  </div>
+                  {(() => {
+                    let caps: Capability[] = [];
+                    try {
+                      caps = card.capabilities ? JSON.parse(card.capabilities) : [];
+                    } catch {
+                      // ignore
+                    }
+                    if (caps.length === 0) return null;
+                    const typeCls: Record<string, string> = {
+                      ai: "text-accent border-accent/40 bg-accent/10",
+                      basic: "text-muted border-line bg-panel",
+                      service: "text-warn border-warn/40 bg-warn/10",
+                    };
+                    const readinessIcon: Record<string, string> = {
+                      ready: "✓",
+                      build: "🔨",
+                      partner: "🤝",
+                    };
+                    return (
+                      <div className="flex flex-col gap-1.5">
+                        {caps.map((cap, i) => (
+                          <div key={i} className="flex flex-wrap items-center gap-2 text-xs">
+                            <span
+                              className={`border rounded px-1.5 py-0.5 ${typeCls[cap.type] ?? typeCls.basic}`}
+                            >
+                              {CAPABILITY_TYPE_LABELS[cap.type] ?? cap.type}
+                            </span>
+                            <span className="font-medium">{cap.name}</span>
+                            <span className="text-muted">{cap.role}</span>
+                            <span className="ml-auto text-muted whitespace-nowrap">
+                              {readinessIcon[cap.readiness] ?? ""}{" "}
+                              {READINESS_LABELS[cap.readiness as Capability["readiness"]] ??
+                                cap.readiness}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
               </section>
             )}
 

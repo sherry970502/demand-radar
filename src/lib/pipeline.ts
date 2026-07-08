@@ -311,11 +311,26 @@ export async function runAnalysis(
 
   try {
     const related = findRelatedCards(card);
-    const report = await analyzeCard(card, related);
+    const { report, delivery } = await analyzeCard(card, related);
     db.prepare(
-      "UPDATE cards SET deep_analysis = ?, status = 'analyzed', updated_at = ? WHERE id = ?"
-    ).run(report, now(), cardId);
-    addCardLog(cardId, "ai", "analyzed", "深度分析完成");
+      `UPDATE cards SET deep_analysis = ?, delivery_mode = ?, skill_name = ?, capabilities = ?,
+       status = 'analyzed', updated_at = ? WHERE id = ?`
+    ).run(
+      report,
+      delivery?.delivery_mode ?? null,
+      delivery?.skill_name ?? null,
+      delivery && delivery.capabilities.length > 0
+        ? JSON.stringify(delivery.capabilities)
+        : null,
+      now(),
+      cardId
+    );
+    addCardLog(
+      cardId,
+      "ai",
+      "analyzed",
+      `深度分析完成${delivery?.delivery_mode ? `。产品呈现：${delivery.delivery_mode === "skill" ? `单一 Skill（${delivery.skill_name ?? "未命名"}）` : "组合交付"}，拆解出 ${delivery.capabilities.length} 项能力/服务` : ""}`
+    );
   } catch (e) {
     // 回退到已初筛状态，人工可再次触发
     db.prepare("UPDATE cards SET status = 'screened', updated_at = ? WHERE id = ?").run(

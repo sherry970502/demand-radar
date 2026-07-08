@@ -20,6 +20,9 @@ const CARD_COLS = [
   "created_at",
   "updated_at",
   "demand_type",
+  "delivery_mode",
+  "skill_name",
+  "capabilities",
 ];
 const LOG_COLS = ["id", "card_id", "ts", "actor", "action", "detail"];
 const RUN_COLS = ["id", "trigger_type", "status", "started_at", "finished_at", "summary", "error"];

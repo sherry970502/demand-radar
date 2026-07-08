@@ -28,6 +28,7 @@ export default function BoardPage() {
   const [priority, setPriority] = useState("");
   const [category, setCategory] = useState("");
   const [demand, setDemand] = useState("");
+  const [delivery, setDelivery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [view, setView] = useState<"board" | "list">("board");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -49,6 +50,7 @@ export default function BoardPage() {
     if (priority) params.set("priority", priority);
     if (category) params.set("category", category);
     if (demand) params.set("demand", demand);
+    if (delivery) params.set("delivery", delivery);
     if (view === "list" && statusFilter) params.set("status", statusFilter);
     try {
       const res = await fetch(`/api/cards?${params}`);
@@ -60,7 +62,7 @@ export default function BoardPage() {
     } catch {
       // ignore transient errors
     }
-  }, [source, priority, category, demand, view, statusFilter]);
+  }, [source, priority, category, demand, delivery, view, statusFilter]);
 
   useEffect(() => {
     load();
@@ -128,6 +130,15 @@ export default function BoardPage() {
           <option value="">全部需求类型</option>
           <option value="existing">已有需求</option>
           <option value="created">✨ 创造需求</option>
+        </select>
+        <select
+          value={delivery}
+          onChange={(e) => setDelivery(e.target.value)}
+          className="bg-panel border border-line rounded-lg px-2.5 py-1.5 text-xs"
+        >
+          <option value="">全部呈现方式</option>
+          <option value="skill">🧩 单一 Skill</option>
+          <option value="combo">🔗 组合交付</option>
         </select>
         {view === "list" && (
           <select

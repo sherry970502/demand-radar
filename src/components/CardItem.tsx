@@ -51,6 +51,17 @@ export default function CardItem({
             {VERDICT_META[card.screening_verdict].label}
           </span>
         )}
+        {card.delivery_mode && (
+          <span
+            className={`border rounded px-1.5 py-0.5 ${
+              card.delivery_mode === "skill"
+                ? "text-emerald-300 border-emerald-400/40 bg-emerald-400/10"
+                : "text-orange-300 border-orange-400/40 bg-orange-400/10"
+            }`}
+          >
+            {card.delivery_mode === "skill" ? "🧩 Skill" : "🔗 组合"}
+          </span>
+        )}
         {card.demand_type && (
           <span
             className={`border rounded px-1.5 py-0.5 ${

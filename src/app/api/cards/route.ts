@@ -36,11 +36,17 @@ export async function GET(request: Request) {
     clauses.push("demand_type = ?");
     params.push(demand);
   }
+  const delivery = url.searchParams.get("delivery");
+  if (delivery === "skill" || delivery === "combo") {
+    clauses.push("delivery_mode = ?");
+    params.push(delivery);
+  }
   const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
 
   const cards = getDb()
     .prepare(
-      `SELECT id, source_type, source_url, title, summary, category, demand_type, screening_verdict,
+      `SELECT id, source_type, source_url, title, summary, category, demand_type,
+              delivery_mode, skill_name, screening_verdict,
               screening_reason, priority, priority_score, status, human_touched,
               created_at, updated_at, substr(raw_content, 1, 140) AS snippet
        FROM cards ${where}

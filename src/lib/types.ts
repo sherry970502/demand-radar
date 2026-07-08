@@ -19,6 +19,34 @@ export type Priority = "P0" | "P1" | "P2";
  */
 export type DemandType = "existing" | "created";
 
+/** 产品呈现方式：skill=单一技能闭环交付；combo=多能力/服务组合交付 */
+export type DeliveryMode = "skill" | "combo";
+
+export const DELIVERY_LABELS: Record<DeliveryMode, string> = {
+  skill: "单一 Skill",
+  combo: "组合交付",
+};
+
+/** 能力/服务构件（深度分析拆解产出，存于 cards.capabilities JSON） */
+export interface Capability {
+  type: "ai" | "basic" | "service";
+  name: string;
+  role: string;
+  readiness: "ready" | "build" | "partner";
+}
+
+export const CAPABILITY_TYPE_LABELS: Record<Capability["type"], string> = {
+  ai: "AI 能力",
+  basic: "基础能力",
+  service: "外部服务",
+};
+
+export const READINESS_LABELS: Record<Capability["readiness"], string> = {
+  ready: "现成可用",
+  build: "需要建设",
+  partner: "需对接第三方",
+};
+
 export const DEMAND_LABELS: Record<DemandType, string> = {
   existing: "已有需求",
   created: "创造需求",
@@ -37,6 +65,9 @@ export interface Card {
   priority: Priority | null;
   priority_score: number | null;
   demand_type: DemandType | null;
+  delivery_mode: DeliveryMode | null;
+  skill_name: string | null;
+  capabilities: string | null; // JSON Capability[]
   deep_analysis: string | null;
   status: CardStatus;
   human_touched: 0 | 1;
