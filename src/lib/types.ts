@@ -1,4 +1,4 @@
-export type SourceType = "reddit" | "report" | "manual";
+export type SourceType = "reddit" | "report" | "manual" | "explore";
 
 export type CardStatus =
   | "pending_screening"
@@ -70,6 +70,8 @@ export interface CollectorSummary {
   discarded: number; // dropped by relevance prefilter
   inserted: number;
   error: string | null;
+  /** 附加说明（如定向探索的场景描述） */
+  note?: string;
 }
 
 export const STATUS_LABELS: Record<CardStatus, string> = {
@@ -85,6 +87,7 @@ export const SOURCE_LABELS: Record<SourceType, string> = {
   reddit: "Reddit",
   report: "研报",
   manual: "创意",
+  explore: "探索",
 };
 
 export const CATEGORY_OPTIONS = [

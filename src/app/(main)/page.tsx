@@ -6,6 +6,7 @@ import CardItem, { type CardListItem } from "@/components/CardItem";
 import CardTable from "@/components/CardTable";
 import CardDetail from "@/components/CardDetail";
 import SubmitModal from "@/components/SubmitModal";
+import ExploreModal from "@/components/ExploreModal";
 import { CATEGORY_OPTIONS, type CardStatus } from "@/lib/types";
 
 function mergeCategories(dynamic: string[]): string[] {
@@ -31,6 +32,7 @@ export default function BoardPage() {
   const [view, setView] = useState<"board" | "list">("board");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showSubmit, setShowSubmit] = useState(false);
+  const [showExplore, setShowExplore] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("adr_view") === "list") setView("list");
@@ -94,6 +96,7 @@ export default function BoardPage() {
           <option value="reddit">Reddit</option>
           <option value="report">研报</option>
           <option value="manual">人工创意</option>
+          <option value="explore">定向探索</option>
         </select>
         <select
           value={priority}
@@ -143,8 +146,14 @@ export default function BoardPage() {
         )}
 
         <button
+          onClick={() => setShowExplore(true)}
+          className="ml-auto border border-accent/50 text-accent font-semibold text-sm rounded-xl px-4 py-2 hover:bg-accent/10"
+        >
+          🔭 定向探索
+        </button>
+        <button
           onClick={() => setShowSubmit(true)}
-          className="ml-auto bg-accent text-black font-semibold text-sm rounded-xl px-5 py-2 hover:opacity-90 shadow-lg shadow-accent/20"
+          className="bg-accent text-black font-semibold text-sm rounded-xl px-5 py-2 hover:opacity-90 shadow-lg shadow-accent/20"
         >
           💡 投递创意
         </button>
@@ -195,6 +204,9 @@ export default function BoardPage() {
       )}
       {showSubmit && (
         <SubmitModal onClose={() => setShowSubmit(false)} onSubmitted={load} />
+      )}
+      {showExplore && (
+        <ExploreModal onClose={() => setShowExplore(false)} onStarted={load} />
       )}
     </main>
   );

@@ -10,6 +10,7 @@ const SOURCE_ICON: Record<string, string> = {
   reddit: "👽",
   report: "📄",
   manual: "💡",
+  explore: "🔭",
 };
 
 export default function CardItem({

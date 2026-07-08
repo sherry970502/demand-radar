@@ -14,6 +14,13 @@ const RUN_STATUS: Record<string, { label: string; cls: string }> = {
 const COLLECTOR_LABEL: Record<string, string> = {
   reddit: "Reddit",
   research: "研报搜索",
+  explore: "定向探索",
+};
+
+const TRIGGER_LABEL: Record<string, string> = {
+  cron: "定时",
+  manual: "手动",
+  explore: "探索",
 };
 
 export default function RunsPage() {
@@ -89,7 +96,7 @@ export default function RunsPage() {
                   {meta.label}
                 </span>
                 <span className="text-muted text-xs">
-                  #{run.id} · {run.trigger_type === "cron" ? "定时" : "手动"}
+                  #{run.id} · {TRIGGER_LABEL[run.trigger_type] ?? run.trigger_type}
                 </span>
                 <span>{fmtTime(run.started_at)}</span>
                 <span className="text-muted text-xs">
@@ -115,6 +122,9 @@ export default function RunsPage() {
                       <span className="font-semibold">
                         {COLLECTOR_LABEL[s.collector] ?? s.collector}
                       </span>
+                      {s.note && (
+                        <span className="text-accent/80">「{s.note}」</span>
+                      )}
                       <span className="text-muted">
                         采集 <b className="text-foreground">{s.collected}</b>
                       </span>

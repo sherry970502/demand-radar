@@ -59,6 +59,33 @@ function insertCard(item: RawItem, collectorName: string): number | null {
   }
 }
 
+/** 去重后入库一批条目（供定向探索等主动采集复用），返回新卡片 id 与去重数 */
+export function ingestItems(
+  items: RawItem[],
+  collectorName: string
+): { ids: number[]; deduped: number } {
+  const db = getDb();
+  const existsStmt = db.prepare(
+    "SELECT 1 FROM cards WHERE content_hash = ? OR (source_url IS NOT NULL AND source_url = ?) LIMIT 1"
+  );
+  const ids: number[] = [];
+  let deduped = 0;
+  const seen = new Set<string>();
+  for (const item of items) {
+    const hash = hashContent(item.content);
+    const key = item.sourceUrl ?? hash;
+    if (seen.has(key) || existsStmt.get(hash, item.sourceUrl ?? "")) {
+      deduped++;
+      continue;
+    }
+    seen.add(key);
+    const id = insertCard(item, collectorName);
+    if (id !== null) ids.push(id);
+    else deduped++;
+  }
+  return { ids, deduped };
+}
+
 /**
  * 一次完整运行：依次执行所有启用的 collector → 去重 → 相关性预过滤 → 入库。
  * 采集阶段结束即写完运行记录；新卡片的初筛与深度分析在后台继续。
