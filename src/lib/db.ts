@@ -57,8 +57,13 @@ CREATE TABLE IF NOT EXISTS ai_usage (
 );
 `;
 
+/** 数据目录：优先 DATA_DIR 环境变量（部署时对齐持久卷挂载路径），否则用 cwd/data */
+export function getDataDir(): string {
+  return process.env.DATA_DIR || path.join(process.cwd(), "data");
+}
+
 function createDb(): Database.Database {
-  const dataDir = path.join(process.cwd(), "data");
+  const dataDir = getDataDir();
   fs.mkdirSync(dataDir, { recursive: true });
   const db = new Database(path.join(dataDir, "app.db"));
   db.pragma("journal_mode = WAL");

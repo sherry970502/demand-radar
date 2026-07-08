@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getDb, getDataDir } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getTodayAiCalls } from "@/lib/ai/client";
 import { isPipelineRunning } from "@/lib/pipeline";
@@ -35,5 +35,6 @@ export async function GET() {
     aiCalls: getTodayAiCalls(),
     aiCallLimit: settings.daily_ai_call_limit,
     hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+    dataDir: getDataDir(), // 排查持久化问题：实际写入的数据目录
   });
 }
