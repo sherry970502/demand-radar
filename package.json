@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "postinstall": "npm rebuild better-sqlite3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
