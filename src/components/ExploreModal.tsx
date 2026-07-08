@@ -17,6 +17,7 @@ export default function ExploreModal({
   onStarted: () => void;
 }) {
   const [scene, setScene] = useState("");
+  const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,7 +28,7 @@ export default function ExploreModal({
     const res = await fetch("/api/explore", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scene: scene.trim() }),
+      body: JSON.stringify({ scene: scene.trim(), focus: focus.trim() }),
     });
     setBusy(false);
     if (res.ok) {
@@ -56,6 +57,13 @@ export default function ExploreModal({
           rows={4}
           autoFocus
           placeholder="例如：BD 商务谈判场景——商务人员从寻找线索、约见、准备材料到谈判跟进的整个过程"
+          className="bg-panel2 border border-line rounded-xl p-3 text-sm outline-none focus:border-accent resize-none"
+        />
+        <textarea
+          value={focus}
+          onChange={(e) => setFocus(e.target.value)}
+          rows={3}
+          placeholder="（可选）你特别关注的环节或已有的想法，每行一条——AI 会逐一覆盖。例如：\n沟通前帮我收集合作商家的信息\n基于商家情况生成合作创意和方案\n寻找更多潜在合作对象"
           className="bg-panel2 border border-line rounded-xl p-3 text-sm outline-none focus:border-accent resize-none"
         />
         <div className="flex flex-wrap gap-1.5">
