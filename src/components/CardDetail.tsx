@@ -8,7 +8,6 @@ import {
   SOURCE_LABELS,
   STATUS_LABELS,
   CAPABILITY_TYPE_LABELS,
-  READINESS_LABELS,
   type Capability,
 } from "@/lib/types";
 import { VERDICT_META, PRIORITY_CLS, parseCategories, fmtTime } from "./utils";
@@ -288,11 +287,6 @@ export default function CardDetail({
                       basic: "text-muted border-line bg-panel",
                       service: "text-warn border-warn/40 bg-warn/10",
                     };
-                    const readinessIcon: Record<string, string> = {
-                      ready: "✓",
-                      build: "🔨",
-                      partner: "🤝",
-                    };
                     return (
                       <div className="flex flex-col gap-1.5">
                         {caps.map((cap, i) => (
@@ -304,13 +298,11 @@ export default function CardDetail({
                             </span>
                             <span className="font-medium">{cap.name}</span>
                             <span className="text-muted">{cap.role}</span>
-                            <span className="ml-auto text-muted whitespace-nowrap">
-                              {readinessIcon[cap.readiness] ?? ""}{" "}
-                              {READINESS_LABELS[cap.readiness as Capability["readiness"]] ??
-                                cap.readiness}
-                            </span>
                           </div>
                         ))}
+                        <p className="text-[10px] text-muted/70 mt-1">
+                          AI 只提出所需构件；是否已有对应 Skill 请对照内部清单判断
+                        </p>
                       </div>
                     );
                   })()}

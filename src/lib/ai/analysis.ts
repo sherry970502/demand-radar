@@ -20,7 +20,6 @@ export interface DeliveryInfo {
     type: string;
     name: string;
     role: string;
-    readiness: string;
   }[];
 }
 

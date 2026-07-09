@@ -27,24 +27,20 @@ export const DELIVERY_LABELS: Record<DeliveryMode, string> = {
   combo: "组合交付",
 };
 
-/** 能力/服务构件（深度分析拆解产出，存于 cards.capabilities JSON） */
+/**
+ * 能力/服务构件（深度分析拆解产出，存于 cards.capabilities JSON）。
+ * AI 只提出"需要什么"，不评估现成度——与内部技能清单的比对由团队完成。
+ */
 export interface Capability {
   type: "ai" | "basic" | "service";
   name: string;
   role: string;
-  readiness: "ready" | "build" | "partner";
 }
 
 export const CAPABILITY_TYPE_LABELS: Record<Capability["type"], string> = {
   ai: "AI 能力",
   basic: "基础能力",
   service: "外部服务",
-};
-
-export const READINESS_LABELS: Record<Capability["readiness"], string> = {
-  ready: "现成可用",
-  build: "需要建设",
-  partner: "需对接第三方",
 };
 
 export const DEMAND_LABELS: Record<DemandType, string> = {
