@@ -29,7 +29,9 @@ export const DELIVERY_LABELS: Record<DeliveryMode, string> = {
 
 /**
  * 能力/服务构件（深度分析拆解产出，存于 cards.capabilities JSON）。
- * AI 只提出"需要什么"，不评估现成度——与内部技能清单的比对由团队完成。
+ * 只有两类：ai=要建的 AI 能力；service=必须对接现实世界的外部服务。
+ * 输入/输出交互与附加玩法不算构件（写在报告第 6 章用户旅程里）。
+ * "basic" 仅为兼容旧数据保留。
  */
 export interface Capability {
   type: "ai" | "basic" | "service";
