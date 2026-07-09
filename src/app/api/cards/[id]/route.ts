@@ -28,7 +28,10 @@ export async function GET(
   const logs = db
     .prepare("SELECT * FROM card_logs WHERE card_id = ? ORDER BY ts ASC, id ASC")
     .all(Number(id));
-  return NextResponse.json({ card, logs });
+  const sceneName = card.scene_id
+    ? (db.prepare("SELECT name FROM scenes WHERE id = ?").get(card.scene_id) as { name: string } | undefined)?.name ?? null
+    : null;
+  return NextResponse.json({ card, logs, sceneName });
 }
 
 export async function PATCH(

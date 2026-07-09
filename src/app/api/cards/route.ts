@@ -48,6 +48,7 @@ export async function GET(request: Request) {
       `SELECT id, source_type, source_url, title, summary, category, demand_type,
               delivery_mode, skill_name, screening_verdict,
               screening_reason, priority, priority_score, status, human_touched,
+              scene_id, stage, persona,
               created_at, updated_at, substr(raw_content, 1, 140) AS snippet
        FROM cards ${where}
        ORDER BY priority_score DESC NULLS LAST, created_at DESC

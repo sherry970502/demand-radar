@@ -50,6 +50,48 @@ export const DEMAND_LABELS: Record<DemandType, string> = {
   created: "创造需求",
 };
 
+/** 卡片 stage 不在蓝图内时，统计上归入该键 */
+export const OTHER_STAGE = "__other__";
+
+/** 场景蓝图：一个业务场景的完整旅程拆解（AI 初拟、人工可改），是覆盖率的分母 */
+export interface BlueprintStage {
+  name: string;
+  description: string;
+}
+
+export interface BlueprintPersona {
+  name: string;
+  description: string;
+}
+
+export interface SceneBlueprint {
+  stages: BlueprintStage[];
+  personas: BlueprintPersona[];
+}
+
+export interface Scene {
+  id: number;
+  name: string;
+  description: string | null;
+  blueprint: string | null; // JSON SceneBlueprint
+  created_at: string;
+  updated_at: string;
+}
+
+/** 场景列表项（含覆盖率统计） */
+export interface SceneStats {
+  id: number;
+  name: string;
+  description: string | null;
+  blueprint: SceneBlueprint;
+  cardCount: number;
+  /** 每个环节的卡片数，键为环节名；不在蓝图内的环节归入 "__other__" */
+  stageCounts: Record<string, number>;
+  coveredStages: number;
+  totalStages: number;
+  updated_at: string;
+}
+
 export interface Card {
   id: number;
   source_type: SourceType;
@@ -58,6 +100,9 @@ export interface Card {
   title: string | null;
   summary: string | null;
   category: string | null; // JSON string array
+  scene_id: number | null;
+  stage: string | null;
+  persona: string | null;
   screening_verdict: Verdict | null;
   screening_reason: string | null;
   priority: Priority | null;

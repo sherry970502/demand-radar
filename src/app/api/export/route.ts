@@ -10,6 +10,7 @@ export async function GET() {
     version: 1,
     exported_at: now(),
     cards: db.prepare("SELECT * FROM cards").all(),
+    scenes: db.prepare("SELECT * FROM scenes").all(),
     card_logs: db.prepare("SELECT * FROM card_logs").all(),
     runs: db.prepare("SELECT * FROM runs").all(),
     settings: db.prepare("SELECT * FROM settings").all(),

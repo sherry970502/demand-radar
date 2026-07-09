@@ -8,15 +8,25 @@ import {
 } from "./ai/client";
 import { EXPLORE_SYSTEM, buildExploreUser } from "./ai/prompts";
 import { ingestItems, processCards } from "./pipeline";
+import { createScene, getScene, parseBlueprint } from "./scenes";
 import type { RawItem } from "./collectors/types";
 import type { CollectorSummary } from "./types";
 
 /**
- * 定向探索：用户描述一个场景（如"BD 商务谈判"），AI 联网搜集该场景下的
- * 用户需求（已有 + 可创造），生成卡片进入标准流水线（初筛→深析）。
+ * 定向探索：围绕一个场景蓝图（环节 × 角色）搜集该场景下的用户需求
+ * （已有 + 可创造），生成卡片挂到蓝图环节上，进入标准流水线（初筛→深析）。
+ *
+ * - 传 sceneId：在已有场景上继续探索（补齐缺口），复用其蓝图
+ * - 传 scene 描述：先 AI 生成蓝图建档，再探索
+ *
  * 每次探索产生一条 trigger_type='explore' 的运行记录。
  */
-export async function exploreScene(scene: string, focus?: string): Promise<number> {
+export async function exploreScene(params: {
+  sceneId?: number;
+  scene?: string;
+  focus?: string;
+}): Promise<number> {
+  const { sceneId, scene: sceneDesc, focus } = params;
   const db = getDb();
   const runInfo = db
     .prepare(
@@ -32,11 +42,28 @@ export async function exploreScene(scene: string, focus?: string): Promise<numbe
     discarded: 0,
     inserted: 0,
     error: null,
-    note: `${scene}${focus?.trim() ? `｜关注点：${focus.trim()}` : ""}`.slice(0, 300),
+    note: "",
   };
   let newIds: number[] = [];
 
   try {
+    // 第一步：拿到场景与蓝图（已有场景直接用，新场景先生成蓝图建档）
+    let scene = sceneId ? getScene(sceneId) : undefined;
+    if (!scene) {
+      if (!sceneDesc) throw new Error("缺少场景描述");
+      scene = await createScene(sceneDesc, focus);
+    }
+    const blueprint = parseBlueprint(scene.blueprint);
+    if (blueprint.stages.length === 0) {
+      throw new Error(`场景「${scene.name}」没有蓝图环节，请先补全蓝图`);
+    }
+    summary.note = `${scene.name}${focus?.trim() ? `｜关注点：${focus.trim()}` : ""}`.slice(0, 300);
+
+    const sceneText = `${scene.name}${scene.description ? `：${scene.description}` : ""}${
+      sceneDesc && sceneDesc !== scene.name ? `\n（用户原始描述：${sceneDesc}）` : ""
+    }`;
+
+    // 第二步：沿蓝图逐环节探索
     const settings = getSettings();
     assertBudget();
     recordAiCall();
@@ -46,7 +73,7 @@ export async function exploreScene(scene: string, focus?: string): Promise<numbe
       max_tokens: 16000,
       system: EXPLORE_SYSTEM,
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 8 }],
-      messages: [{ role: "user", content: buildExploreUser(scene, focus) }],
+      messages: [{ role: "user", content: buildExploreUser(sceneText, blueprint, focus) }],
     });
     const text = messageText(message);
     const start = text.indexOf("[");
@@ -59,6 +86,7 @@ export async function exploreScene(scene: string, focus?: string): Promise<numbe
 
     type ExploreEntry = {
       stage?: string;
+      persona?: string;
       title?: string;
       url?: string | null;
       summary?: string;
@@ -87,6 +115,8 @@ export async function exploreScene(scene: string, focus?: string): Promise<numbe
       arr = JSON.parse(rtext.slice(rs, re + 1)) as ExploreEntry[];
     }
 
+    const stageNames = new Set(blueprint.stages.map((s) => s.name));
+    const personaNames = new Set(blueprint.personas.map((p) => p.name));
     const items: RawItem[] = [];
     for (const e of arr) {
       if (!e.title || !e.summary) continue;
@@ -94,7 +124,11 @@ export async function exploreScene(scene: string, focus?: string): Promise<numbe
         sourceType: "explore",
         sourceUrl: e.url || null,
         title: e.title,
-        content: `【定向探索：${scene.slice(0, 80)}】${e.stage ? `【环节：${e.stage}】` : ""}\n${e.title}\n\n${e.summary}${e.url ? `\n\n来源：${e.url}` : ""}`,
+        content: `【定向探索：${scene.name}】${e.stage ? `【环节：${e.stage}】` : ""}${e.persona ? `【角色：${e.persona}】` : ""}\n${e.title}\n\n${e.summary}${e.url ? `\n\n来源：${e.url}` : ""}`,
+        sceneId: scene.id,
+        // 蓝图外的环节/角色不落库（进"未归入环节"桶），避免污染覆盖率
+        stage: e.stage && stageNames.has(e.stage) ? e.stage : undefined,
+        persona: e.persona && personaNames.has(e.persona) ? e.persona : undefined,
       });
     }
     summary.collected = items.length;

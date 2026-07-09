@@ -74,6 +74,11 @@ export default function CardItem({
             {DEMAND_LABELS[card.demand_type]}
           </span>
         )}
+        {card.persona && (
+          <span className="border border-violet-400/40 bg-violet-400/10 text-violet-300 rounded px-1.5 py-0.5">
+            {card.persona}
+          </span>
+        )}
         {card.human_touched === 1 && (
           <span className="border border-accent/40 bg-accent/10 text-accent rounded px-1.5 py-0.5">
             已干预

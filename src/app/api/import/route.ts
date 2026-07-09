@@ -23,7 +23,11 @@ const CARD_COLS = [
   "delivery_mode",
   "skill_name",
   "capabilities",
+  "scene_id",
+  "stage",
+  "persona",
 ];
+const SCENE_COLS = ["id", "name", "description", "blueprint", "created_at", "updated_at"];
 const LOG_COLS = ["id", "card_id", "ts", "actor", "action", "detail"];
 const RUN_COLS = ["id", "trigger_type", "status", "started_at", "finished_at", "summary", "error"];
 
@@ -34,6 +38,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     version?: number;
     cards?: Row[];
+    scenes?: Row[];
     card_logs?: Row[];
     runs?: Row[];
     settings?: Row[];
@@ -55,10 +60,11 @@ export async function POST(request: Request) {
   };
 
   const tx = db.transaction(() => {
-    for (const table of ["cards", "card_logs", "runs", "settings", "ai_usage"]) {
+    for (const table of ["cards", "scenes", "card_logs", "runs", "settings", "ai_usage"]) {
       db.exec(`DELETE FROM ${table}`);
     }
     insert("cards", CARD_COLS, body.cards ?? []);
+    insert("scenes", SCENE_COLS, body.scenes ?? []);
     insert("card_logs", LOG_COLS, body.card_logs ?? []);
     insert("runs", RUN_COLS, body.runs ?? []);
     insert("settings", ["key", "value"], body.settings ?? []);

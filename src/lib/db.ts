@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS runs (
   error TEXT
 );
 
+CREATE TABLE IF NOT EXISTS scenes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  blueprint TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -80,6 +89,12 @@ function migrate(db: Database.Database) {
     if (!have.has(col)) {
       db.exec(`ALTER TABLE cards ADD COLUMN ${col} TEXT`);
     }
+  }
+  if (!have.has("scene_id")) {
+    db.exec(`ALTER TABLE cards ADD COLUMN scene_id INTEGER`);
+    db.exec(`ALTER TABLE cards ADD COLUMN stage TEXT`);
+    db.exec(`ALTER TABLE cards ADD COLUMN persona TEXT`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_cards_scene ON cards(scene_id)`);
   }
 }
 

@@ -29,6 +29,7 @@ export default function CardDetail({
 }) {
   const [card, setCard] = useState<Card | null>(null);
   const [logs, setLogs] = useState<CardLog[]>([]);
+  const [sceneName, setSceneName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -37,6 +38,7 @@ export default function CardDetail({
       const data = await res.json();
       setCard(data.card);
       setLogs(data.logs);
+      setSceneName(data.sceneName ?? null);
     }
   }, [cardId]);
 
@@ -85,6 +87,13 @@ export default function CardDetail({
                   {STATUS_LABELS[card.status]}
                   {card.human_touched === 1 && (
                     <span className="ml-2 text-accent">已人工干预</span>
+                  )}
+                  {sceneName && (
+                    <span className="ml-2 text-violet-300">
+                      🗺 {sceneName}
+                      {card.stage ? ` · ${card.stage}` : ""}
+                      {card.persona ? ` · ${card.persona}` : ""}
+                    </span>
                   )}
                 </div>
                 <h2 className="text-lg font-bold leading-snug">

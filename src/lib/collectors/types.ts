@@ -6,6 +6,10 @@ export interface RawItem {
   sourceUrl: string | null;
   title: string;
   content: string;
+  /** 定向探索：所属场景与蓝图环节/角色，入库时直接落到卡片上 */
+  sceneId?: number;
+  stage?: string;
+  persona?: string;
 }
 
 /**

@@ -39,14 +39,17 @@ function insertCard(item: RawItem, collectorName: string): number | null {
   try {
     const info = db
       .prepare(
-        `INSERT INTO cards (source_type, source_url, raw_content, content_hash, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'pending_screening', ?, ?)`
+        `INSERT INTO cards (source_type, source_url, raw_content, content_hash, scene_id, stage, persona, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_screening', ?, ?)`
       )
       .run(
         item.sourceType,
         item.sourceUrl,
         item.content,
         hashContent(item.content),
+        item.sceneId ?? null,
+        item.stage ?? null,
+        item.persona ?? null,
         ts,
         ts
       );

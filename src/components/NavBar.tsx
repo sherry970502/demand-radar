@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "看板" },
+  { href: "/scenes", label: "场景看板" },
   { href: "/runs", label: "运行日志" },
   { href: "/settings", label: "设置" },
 ];
@@ -29,7 +30,7 @@ export default function NavBar() {
             key={l.href}
             href={l.href}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              pathname === l.href
+              pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href))
                 ? "bg-panel2 text-foreground"
                 : "text-muted hover:text-foreground"
             }`}
