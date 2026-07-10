@@ -8,8 +8,19 @@ import {
   SOURCE_LABELS,
   STATUS_LABELS,
   CAPABILITY_TYPE_LABELS,
+  WORK_STATUS_LABELS,
+  assetStatusLabel,
+  type AssetStatus,
   type Capability,
 } from "@/lib/types";
+
+interface BoundAgent {
+  id: number;
+  name: string;
+  status: AssetStatus;
+  trial_url: string | null;
+  stage_detail: string | null;
+}
 import { VERDICT_META, PRIORITY_CLS, parseCategories, fmtTime } from "./utils";
 
 const ACTOR_LABEL: Record<string, string> = {
@@ -30,6 +41,7 @@ export default function CardDetail({
   const [card, setCard] = useState<Card | null>(null);
   const [logs, setLogs] = useState<CardLog[]>([]);
   const [sceneName, setSceneName] = useState<string | null>(null);
+  const [agent, setAgent] = useState<BoundAgent | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -39,6 +51,7 @@ export default function CardDetail({
       setCard(data.card);
       setLogs(data.logs);
       setSceneName(data.sceneName ?? null);
+      setAgent(data.agent ?? null);
     }
   }, [cardId]);
 
@@ -209,6 +222,83 @@ export default function CardDetail({
               </div>
             </div>
 
+            {/* 生产交付：工单状态 + 绑定的 AI 员工 + 签收 */}
+            <div className="bg-panel2 border border-line rounded-xl p-4 flex flex-col gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted font-semibold">生产交付</span>
+                <span
+                  className={`text-[11px] border rounded px-1.5 py-0.5 ${
+                    card.work_status === "signed_off"
+                      ? "text-good border-good/40 bg-good/10"
+                      : card.work_status === "pending_signoff"
+                        ? "text-warn border-warn/40 bg-warn/10"
+                        : card.work_status
+                          ? "text-accent border-accent/40 bg-accent/10"
+                          : "text-muted border-line bg-panel"
+                  }`}
+                >
+                  {card.work_status ? WORK_STATUS_LABELS[card.work_status] : "未派发"}
+                </span>
+                {!card.work_status && (
+                  <button
+                    disabled={busy}
+                    onClick={() => patch({ work_status: "dispatched" })}
+                    className="ml-auto border border-accent/50 text-accent rounded-lg px-3 py-1.5 text-xs hover:bg-accent/10 disabled:opacity-40"
+                  >
+                    派发生产 →
+                  </button>
+                )}
+              </div>
+              {agent ? (
+                <div className="flex flex-wrap items-center gap-2 bg-panel border border-line rounded-lg px-3 py-2.5">
+                  <span className="text-[11px] text-accent border border-accent/40 bg-accent/10 rounded px-1.5 py-0.5">
+                    🤖 AI 员工
+                  </span>
+                  <span className="font-medium text-[13px]">{agent.name}</span>
+                  <span className="text-[11px] text-muted">
+                    {assetStatusLabel("agent", agent.status)}
+                    {agent.stage_detail ? ` · ${agent.stage_detail}` : ""}
+                  </span>
+                  <span className="ml-auto flex items-center gap-2">
+                    {agent.trial_url && (
+                      <a
+                        href={agent.trial_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="border border-line rounded-lg px-3 py-1.5 text-xs hover:border-accent hover:text-accent"
+                      >
+                        抽样体验
+                      </a>
+                    )}
+                    {card.work_status === "pending_signoff" && (
+                      <button
+                        disabled={busy}
+                        onClick={() => patch({ work_status: "signed_off" })}
+                        className="bg-good/90 text-black font-semibold rounded-lg px-3 py-1.5 text-xs hover:opacity-90 disabled:opacity-40"
+                      >
+                        签收 ✓
+                      </button>
+                    )}
+                    {card.work_status === "pending_signoff" && (
+                      <button
+                        disabled={busy}
+                        onClick={() => patch({ work_status: "producing" })}
+                        className="border border-line rounded-lg px-3 py-1.5 text-xs text-muted hover:border-bad hover:text-bad disabled:opacity-40"
+                      >
+                        打回
+                      </button>
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted">
+                  {card.work_status
+                    ? "等待生产工程回传绑定 AI 员工…"
+                    : "派发后由生产工程拆解生产，交付物是一个 AI 员工，签收以它为单位。"}
+                </p>
+              )}
+            </div>
+
             {/* AI 摘要与初筛 */}
             {card.summary && (
               <section>
@@ -262,27 +352,11 @@ export default function CardDetail({
               </section>
             )}
 
-            {/* 产品呈现方式与能力拆解 */}
-            {card.delivery_mode && (
+            {/* 资源预估（雷达草图）——生产结构以工程拆解为准 */}
+            {card.capabilities && (
               <section>
-                <h3 className="text-xs text-muted font-semibold mb-1.5">产品呈现方式</h3>
+                <h3 className="text-xs text-muted font-semibold mb-1.5">资源预估（雷达草图）</h3>
                 <div className="bg-panel2 border border-line rounded-xl p-3 flex flex-col gap-2.5">
-                  <div className="flex items-center gap-2 text-sm">
-                    {card.delivery_mode === "skill" ? (
-                      <>
-                        <span className="border rounded px-2 py-0.5 text-emerald-300 border-emerald-400/40 bg-emerald-400/10 text-xs font-semibold">
-                          🧩 单一 Skill
-                        </span>
-                        {card.skill_name && (
-                          <span className="font-medium">{card.skill_name}</span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="border rounded px-2 py-0.5 text-orange-300 border-orange-400/40 bg-orange-400/10 text-xs font-semibold">
-                        🔗 组合交付（多能力/服务串联）
-                      </span>
-                    )}
-                  </div>
                   {(() => {
                     let caps: Capability[] = [];
                     try {
@@ -292,9 +366,13 @@ export default function CardDetail({
                     }
                     if (caps.length === 0) return null;
                     const typeCls: Record<string, string> = {
+                      skill: "text-accent border-accent/40 bg-accent/10",
+                      ai_service: "text-sky-300 border-sky-400/40 bg-sky-400/10",
+                      knowledge: "text-emerald-300 border-emerald-400/40 bg-emerald-400/10",
+                      mcp: "text-violet-300 border-violet-400/40 bg-violet-400/10",
+                      service: "text-warn border-warn/40 bg-warn/10",
                       ai: "text-accent border-accent/40 bg-accent/10",
                       basic: "text-muted border-line bg-panel",
-                      service: "text-warn border-warn/40 bg-warn/10",
                     };
                     return (
                       <div className="flex flex-col gap-1.5">
@@ -310,7 +388,7 @@ export default function CardDetail({
                           </div>
                         ))}
                         <p className="text-[10px] text-muted/70 mt-1">
-                          AI 只提出所需构件；是否已有对应 Skill 请对照内部清单判断
+                          ⚠ 仅为雷达预估（用于评分与缺口参考）；实际生产结构（Multi-Agent/子Agent/Skill）以工程拆解回传为准
                         </p>
                       </div>
                     );

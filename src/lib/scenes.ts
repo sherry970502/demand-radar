@@ -12,6 +12,7 @@ import {
   BACKFILL_SYSTEM,
   buildBackfillUser,
 } from "./ai/prompts";
+import { sceneAssetReadiness } from "./assets";
 import { OTHER_STAGE, type Scene, type SceneBlueprint, type SceneStats } from "./types";
 
 function extractJson(text: string, open: string, close: string): string {
@@ -132,6 +133,13 @@ export function listScenesWithStats(): SceneStats[] {
       "SELECT scene_id, stage, COUNT(*) AS n FROM cards WHERE scene_id IS NOT NULL GROUP BY scene_id, stage"
     )
     .all() as { scene_id: number; stage: string | null; n: number }[];
+  const signedRows = db
+    .prepare(
+      "SELECT scene_id, COUNT(*) AS n FROM cards WHERE scene_id IS NOT NULL AND work_status = 'signed_off' GROUP BY scene_id"
+    )
+    .all() as { scene_id: number; n: number }[];
+  const signedByScene = new Map(signedRows.map((r) => [r.scene_id, r.n]));
+  const readiness = sceneAssetReadiness();
 
   return scenes.map((scene) => {
     const blueprint = parseBlueprint(scene.blueprint);
@@ -154,6 +162,9 @@ export function listScenesWithStats(): SceneStats[] {
       stageCounts,
       coveredStages,
       totalStages: blueprint.stages.length,
+      assetReady: readiness.get(scene.id)?.ready ?? 0,
+      assetTotal: readiness.get(scene.id)?.total ?? 0,
+      signedCards: signedByScene.get(scene.id) ?? 0,
       updated_at: scene.updated_at,
     };
   });

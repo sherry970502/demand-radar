@@ -17,41 +17,45 @@ export async function GET(request: Request) {
   const params: unknown[] = [];
   if (status) {
     const list = status.split(",");
-    clauses.push(`status IN (${list.map(() => "?").join(",")})`);
+    clauses.push(`c.status IN (${list.map(() => "?").join(",")})`);
     params.push(...list);
   }
   if (source) {
-    clauses.push("source_type = ?");
+    clauses.push("c.source_type = ?");
     params.push(source);
   }
   if (priority) {
-    clauses.push("priority = ?");
+    clauses.push("c.priority = ?");
     params.push(priority);
   }
   if (category) {
-    clauses.push("category LIKE ?");
+    clauses.push("c.category LIKE ?");
     params.push(`%"${category}"%`);
   }
   if (demand === "existing" || demand === "created") {
-    clauses.push("demand_type = ?");
+    clauses.push("c.demand_type = ?");
     params.push(demand);
   }
-  const delivery = url.searchParams.get("delivery");
-  if (delivery === "skill" || delivery === "combo") {
-    clauses.push("delivery_mode = ?");
-    params.push(delivery);
+  // 生产工单筛选：none=未派发，其余为工单状态值（审核入口：?work=pending_signoff）
+  const work = url.searchParams.get("work");
+  if (work === "none") {
+    clauses.push("c.work_status IS NULL");
+  } else if (work) {
+    clauses.push("c.work_status = ?");
+    params.push(work);
   }
   const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
 
   const cards = getDb()
     .prepare(
-      `SELECT id, source_type, source_url, title, summary, category, demand_type,
-              delivery_mode, skill_name, screening_verdict,
-              screening_reason, priority, priority_score, status, human_touched,
-              scene_id, stage, persona,
-              created_at, updated_at, substr(raw_content, 1, 140) AS snippet
-       FROM cards ${where}
-       ORDER BY priority_score DESC NULLS LAST, created_at DESC
+      `SELECT c.id, c.source_type, c.source_url, c.title, c.summary, c.category, c.demand_type,
+              c.screening_verdict, c.screening_reason, c.priority, c.priority_score,
+              c.status, c.human_touched, c.scene_id, c.stage, c.persona,
+              c.agent_asset_id, c.work_status, a.name AS agent_name,
+              c.created_at, c.updated_at, substr(c.raw_content, 1, 140) AS snippet
+       FROM cards c LEFT JOIN assets a ON a.id = c.agent_asset_id
+       ${where}
+       ORDER BY c.priority_score DESC NULLS LAST, c.created_at DESC
        LIMIT 500`
     )
     .all(...params) as Partial<Card>[];

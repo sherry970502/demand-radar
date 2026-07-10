@@ -253,9 +253,8 @@ export default function SettingsPage() {
           />
         </label>
         <p className="text-[11px] text-muted">
-          ⚠ 末尾的 <code>&lt;delivery&gt;</code> 机器可读块说明不要删——系统靠它解析并落库
-          「产品呈现方式」（delivery_mode / skill_name / capabilities）；删掉后报告仍能生成，
-          但这些字段会为空。清空整个文本框则回退到代码内默认提示词。
+          ⚠ 末尾的 <code>&lt;delivery&gt;</code> 机器可读块说明不要删——系统靠它解析「资源预估」
+          （capabilities 草图）；删掉后报告仍能生成，但预估字段会为空。清空整个文本框则回退到代码内默认提示词。
         </p>
       </section>
 

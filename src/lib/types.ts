@@ -28,21 +28,27 @@ export const DELIVERY_LABELS: Record<DeliveryMode, string> = {
 };
 
 /**
- * 能力/服务构件（深度分析拆解产出，存于 cards.capabilities JSON）。
- * 只有两类：ai=要建的 AI 能力；service=必须对接现实世界的外部服务。
+ * 资源构件（深度分析拆解产出，存于 cards.capabilities JSON）。
+ * 五类制：把需求视为一个子 agent，拆解其执行时要编排的资源——
+ * skill=自研技能包；ai_service=接入的模型能力；knowledge=知识库；
+ * mcp=MCP 工具；service=现实世界外部服务。
  * 输入/输出交互与附加玩法不算构件（写在报告第 6 章用户旅程里）。
- * "basic" 仅为兼容旧数据保留。
+ * "ai"（旧两类制）与 "basic" 仅为兼容旧数据保留。
  */
 export interface Capability {
-  type: "ai" | "basic" | "service";
+  type: "skill" | "ai_service" | "knowledge" | "mcp" | "service" | "ai" | "basic";
   name: string;
   role: string;
 }
 
 export const CAPABILITY_TYPE_LABELS: Record<Capability["type"], string> = {
-  ai: "AI 能力",
-  basic: "基础能力",
+  skill: "技能包",
+  ai_service: "AI 服务",
+  knowledge: "知识库",
+  mcp: "MCP 工具",
   service: "外部服务",
+  ai: "AI 能力（旧）",
+  basic: "基础能力",
 };
 
 export const DEMAND_LABELS: Record<DemandType, string> = {
@@ -89,8 +95,27 @@ export interface SceneStats {
   stageCounts: Record<string, number>;
   coveredStages: number;
   totalStages: number;
+  /** 能力就绪度：该场景卡片关联的资产中已验收的数量 / 总数 */
+  assetReady: number;
+  assetTotal: number;
+  /** 员工交付率分子：已签收（signed_off）的卡片数，分母为 cardCount */
+  signedCards: number;
   updated_at: string;
 }
+
+/**
+ * 需求卡片的生产工单状态（与情报流水线 status 独立）：
+ * null=未派发 → dispatched=已派发 → producing=生产中 → pending_signoff=待签收 → signed_off=已签收。
+ * 签收以卡片绑定的 AI 员工为单位；pending_signoff 由工程回调设置，signed_off 仅人工。
+ */
+export type WorkStatus = "dispatched" | "producing" | "pending_signoff" | "signed_off";
+
+export const WORK_STATUS_LABELS: Record<WorkStatus, string> = {
+  dispatched: "已派发",
+  producing: "生产中",
+  pending_signoff: "待签收",
+  signed_off: "已签收",
+};
 
 export interface Card {
   id: number;
@@ -103,6 +128,9 @@ export interface Card {
   scene_id: number | null;
   stage: string | null;
   persona: string | null;
+  /** 交付绑定：完成这张卡的 AI 员工（assets 表 type=agent 的资产） */
+  agent_asset_id: number | null;
+  work_status: WorkStatus | null;
   screening_verdict: Verdict | null;
   screening_reason: string | null;
   priority: Priority | null;
@@ -117,6 +145,98 @@ export interface Card {
   created_at: string;
   updated_at: string;
 }
+
+// ---------- 能力资产注册表（第二步：研发生产的状态跟踪层） ----------
+
+/**
+ * 资产类型。注册表只养两类东西：
+ * - **agent（AI 员工）**：交付/验收单元——一张需求卡绑定一个 AI 员工，签收以它为单位。
+ *   内部的子 Agent 结构不建实体，存 structure 字段展示。
+ * - **资源（复用单元）**：skill=自研技能包；ai_service=接入的模型能力；
+ *   knowledge=知识库；mcp=MCP 工具；service=现实世界外部服务。
+ * "ai" 为旧两类制的遗留标签（存量数据保留，可在详情里手动改类）。
+ */
+export type AssetType = "agent" | "skill" | "ai_service" | "knowledge" | "mcp" | "service" | "ai";
+
+/**
+ * 里程碑状态（粗粒度、固定）。生产工程内部的细分阶段写 stage_detail 自由文本，
+ * 工程流程怎么改都不影响这套状态。
+ */
+export type AssetStatus =
+  | "proposed" // 已提出（从需求拆解汇入，未开始）
+  | "defining" // 定义中
+  | "developing" // 研发中
+  | "testing" // 测试中
+  | "accepted" // 已验收上架
+  | "paused"; // 暂缓
+
+export interface Asset {
+  id: number;
+  type: AssetType;
+  name: string;
+  role: string | null;
+  status: AssetStatus;
+  stage_detail: string | null; // 生产工程回报的当前细分阶段说明
+  artifact_url: string | null; // 产物链接（仓库 / skill 包）
+  trial_url: string | null; // 产品端试用/抽样体验直达链接
+  structure: string | null; // agent 专用：内部结构描述（子 Agent 编排，工程回传，仅展示）
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 资产列表项（含关联统计；agent 额外带组成资源摘要与服务的卡片标题） */
+export interface AssetListItem extends Asset {
+  cardCount: number;
+  sceneNames: string[];
+  components?: { id: number; type: AssetType; name: string; status: AssetStatus }[];
+  servedCards?: { id: number; title: string | null }[];
+}
+
+export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  agent: "AI 员工",
+  skill: "技能包",
+  ai_service: "AI 服务",
+  knowledge: "知识库",
+  mcp: "MCP 工具",
+  service: "外部服务",
+  ai: "AI 能力（旧）",
+};
+
+export const ASSET_STATUS_LABELS: Record<AssetStatus, string> = {
+  proposed: "已提出",
+  defining: "定义中",
+  developing: "研发中",
+  testing: "测试中",
+  accepted: "已验收",
+  paused: "暂缓",
+};
+
+/**
+ * 状态措辞按资产类型区分（同一套枚举，只是显示语义不同）：
+ * skill 是"研发"，ai_service/mcp 是"接入/集成"，knowledge 是"收集"，service 是"对接"。
+ */
+const STATUS_LABELS_BY_TYPE: Partial<Record<AssetType, Partial<Record<AssetStatus, string>>>> = {
+  agent: { defining: "设计中", developing: "组装中", testing: "待签收", accepted: "已签收" },
+  ai_service: { defining: "选型评估中", developing: "接入中", testing: "验证中", accepted: "已接入" },
+  mcp: { defining: "选型评估中", developing: "集成中", testing: "联调中", accepted: "已接入" },
+  knowledge: { defining: "界定范围中", developing: "收集中", testing: "校验中", accepted: "已就绪" },
+  service: { defining: "方案评估中", developing: "对接中", testing: "验证中", accepted: "已对接" },
+};
+
+export function assetStatusLabel(type: AssetType, status: AssetStatus): string {
+  return STATUS_LABELS_BY_TYPE[type]?.[status] ?? ASSET_STATUS_LABELS[status];
+}
+
+/** 状态在流程中的顺序（用于就绪度与排序） */
+export const ASSET_STATUS_ORDER: AssetStatus[] = [
+  "proposed",
+  "defining",
+  "developing",
+  "testing",
+  "accepted",
+  "paused",
+];
 
 export interface CardLog {
   id: number;

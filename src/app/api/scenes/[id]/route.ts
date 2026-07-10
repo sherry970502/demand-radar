@@ -17,12 +17,14 @@ export async function GET(
   }
   const cards = getDb()
     .prepare(
-      `SELECT id, source_type, source_url, title, summary, category, demand_type,
-              delivery_mode, skill_name, screening_verdict, screening_reason,
-              priority, priority_score, status, human_touched, scene_id, stage, persona,
-              created_at, updated_at, substr(raw_content, 1, 140) AS snippet
-       FROM cards WHERE scene_id = ?
-       ORDER BY priority_score DESC NULLS LAST, created_at DESC`
+      `SELECT c.id, c.source_type, c.source_url, c.title, c.summary, c.category, c.demand_type,
+              c.screening_verdict, c.screening_reason,
+              c.priority, c.priority_score, c.status, c.human_touched, c.scene_id, c.stage, c.persona,
+              c.agent_asset_id, c.work_status, a.name AS agent_name,
+              c.created_at, c.updated_at, substr(c.raw_content, 1, 140) AS snippet
+       FROM cards c LEFT JOIN assets a ON a.id = c.agent_asset_id
+       WHERE c.scene_id = ?
+       ORDER BY c.priority_score DESC NULLS LAST, c.created_at DESC`
     )
     .all(scene.id) as Partial<Card>[];
   return NextResponse.json({

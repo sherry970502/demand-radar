@@ -1,10 +1,17 @@
 "use client";
 
 import type { Card } from "@/lib/types";
-import { DEMAND_LABELS, SOURCE_LABELS } from "@/lib/types";
+import { DEMAND_LABELS, SOURCE_LABELS, WORK_STATUS_LABELS } from "@/lib/types";
 import { VERDICT_META, PRIORITY_CLS, parseCategories, fmtTime } from "./utils";
 
-export type CardListItem = Card & { snippet?: string };
+export type CardListItem = Card & { snippet?: string; agent_name?: string | null };
+
+const WORK_STATUS_CLS: Record<string, string> = {
+  dispatched: "text-accent border-accent/40 bg-accent/10",
+  producing: "text-sky-300 border-sky-400/40 bg-sky-400/10",
+  pending_signoff: "text-warn border-warn/40 bg-warn/10 font-bold",
+  signed_off: "text-good border-good/40 bg-good/10",
+};
 
 const SOURCE_ICON: Record<string, string> = {
   reddit: "👽",
@@ -51,17 +58,6 @@ export default function CardItem({
             {VERDICT_META[card.screening_verdict].label}
           </span>
         )}
-        {card.delivery_mode && (
-          <span
-            className={`border rounded px-1.5 py-0.5 ${
-              card.delivery_mode === "skill"
-                ? "text-emerald-300 border-emerald-400/40 bg-emerald-400/10"
-                : "text-orange-300 border-orange-400/40 bg-orange-400/10"
-            }`}
-          >
-            {card.delivery_mode === "skill" ? "🧩 Skill" : "🔗 组合"}
-          </span>
-        )}
         {card.demand_type && (
           <span
             className={`border rounded px-1.5 py-0.5 ${
@@ -77,6 +73,17 @@ export default function CardItem({
         {card.persona && (
           <span className="border border-violet-400/40 bg-violet-400/10 text-violet-300 rounded px-1.5 py-0.5">
             {card.persona}
+          </span>
+        )}
+        {card.work_status && (
+          <span className={`border rounded px-1.5 py-0.5 ${WORK_STATUS_CLS[card.work_status]}`}>
+            {card.work_status === "pending_signoff" ? "⏳ " : ""}
+            {WORK_STATUS_LABELS[card.work_status]}
+          </span>
+        )}
+        {card.agent_name && (
+          <span className="border border-good/40 bg-good/10 text-good rounded px-1.5 py-0.5">
+            🤖 {card.agent_name}
           </span>
         )}
         {card.human_touched === 1 && (

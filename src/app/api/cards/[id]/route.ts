@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { getDb, now, addCardLog } from "@/lib/db";
-import { STATUS_LABELS, type Card, type CardStatus } from "@/lib/types";
+import { updateAsset, bindAgentToCard, getAsset } from "@/lib/assets";
+import {
+  STATUS_LABELS,
+  WORK_STATUS_LABELS,
+  type Card,
+  type CardStatus,
+  type WorkStatus,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +38,12 @@ export async function GET(
   const sceneName = card.scene_id
     ? (db.prepare("SELECT name FROM scenes WHERE id = ?").get(card.scene_id) as { name: string } | undefined)?.name ?? null
     : null;
-  return NextResponse.json({ card, logs, sceneName });
+  const agent = card.agent_asset_id
+    ? (db
+        .prepare("SELECT id, name, status, trial_url, stage_detail FROM assets WHERE id = ?")
+        .get(card.agent_asset_id) ?? null)
+    : null;
+  return NextResponse.json({ card, logs, sceneName, agent });
 }
 
 export async function PATCH(
@@ -53,10 +65,49 @@ export async function PATCH(
     screening_verdict?: string;
     status?: string;
     demand_type?: string;
+    /** 生产工单流转：dispatched(派发)/producing/pending_signoff 可由工程回报；signed_off 仅人工 */
+    work_status?: WorkStatus | "";
+    /** 工程回传：绑定交付该卡的 AI 员工 */
+    agent_asset_id?: number;
+    actor?: "human" | "pipeline";
   };
+  const isPipeline = body.actor === "pipeline";
 
   const updates: string[] = [];
   const values: unknown[] = [];
+
+  let agentBound = false;
+  if (body.agent_asset_id !== undefined) {
+    if (!getAsset(body.agent_asset_id) || getAsset(body.agent_asset_id)!.type !== "agent") {
+      return NextResponse.json({ error: "agent_asset_id 不是有效的 AI 员工资产" }, { status: 400 });
+    }
+    bindAgentToCard(body.agent_asset_id, cardId, isPipeline ? "pipeline" : "human");
+    agentBound = true;
+  }
+
+  if (body.work_status !== undefined && body.work_status !== "") {
+    if (!(body.work_status in WORK_STATUS_LABELS)) {
+      return NextResponse.json({ error: "无效的工单状态" }, { status: 400 });
+    }
+    if (isPipeline && body.work_status === "signed_off") {
+      return NextResponse.json(
+        { error: "生产工程不能自行签收：signed_off 只能由人工触发（工程最多推到待签收）" },
+        { status: 403 }
+      );
+    }
+    updates.push("work_status = ?");
+    values.push(body.work_status);
+    addCardLog(
+      cardId,
+      isPipeline ? "system" : "human",
+      "work_status_changed",
+      `工单：${card.work_status ? WORK_STATUS_LABELS[card.work_status] : "未派发"} → ${WORK_STATUS_LABELS[body.work_status]}`
+    );
+    // 人工签收 → 绑定的 AI 员工同步转为已签收（accepted）
+    if (!isPipeline && body.work_status === "signed_off" && card.agent_asset_id) {
+      updateAsset(card.agent_asset_id, { status: "accepted" }, "human");
+    }
+  }
 
   if (body.priority && ["P0", "P1", "P2"].includes(body.priority)) {
     updates.push("priority = ?");
@@ -98,10 +149,15 @@ export async function PATCH(
   }
 
   if (updates.length === 0) {
+    if (agentBound) {
+      const updated = db.prepare("SELECT * FROM cards WHERE id = ?").get(cardId);
+      return NextResponse.json({ card: updated });
+    }
     return NextResponse.json({ error: "没有可应用的修改" }, { status: 400 });
   }
 
-  updates.push("human_touched = 1", "updated_at = ?");
+  if (isPipeline) updates.push("updated_at = ?");
+  else updates.push("human_touched = 1", "updated_at = ?");
   values.push(now(), cardId);
   db.prepare(`UPDATE cards SET ${updates.join(", ")} WHERE id = ?`).run(...values);
 

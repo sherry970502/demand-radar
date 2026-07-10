@@ -332,8 +332,10 @@ export async function runAnalysis(
       cardId,
       "ai",
       "analyzed",
-      `深度分析完成${delivery?.delivery_mode ? `。产品呈现：${delivery.delivery_mode === "skill" ? `单一 Skill（${delivery.skill_name ?? "未命名"}）` : "组合交付"}，拆解出 ${delivery.capabilities.length} 项能力/服务` : ""}`
+      `深度分析完成${delivery && delivery.capabilities.length > 0 ? `。资源预估（雷达草图）${delivery.capabilities.length} 项` : ""}`
     );
+    // 注：资源拆解是雷达预估（可行性草图），不再自动汇入资产注册表——
+    // 注册表只收生产工程回传的事实；预估同步保留为注册表页的手动按钮
   } catch (e) {
     // 回退到已初筛状态，人工可再次触发
     db.prepare("UPDATE cards SET status = 'screened', updated_at = ? WHERE id = ?").run(

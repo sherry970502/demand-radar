@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 const LINKS = [
   { href: "/", label: "看板" },
   { href: "/scenes", label: "场景看板" },
+  { href: "/assets", label: "能力资产" },
   { href: "/runs", label: "运行日志" },
   { href: "/settings", label: "设置" },
 ];

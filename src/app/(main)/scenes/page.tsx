@@ -144,6 +144,33 @@ export default function ScenesPage() {
 
               <CoverageBar scene={scene} />
 
+              {scene.assetTotal > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-panel2 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent"
+                      style={{ width: `${Math.round((scene.assetReady / scene.assetTotal) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted whitespace-nowrap">
+                    技能备货 {scene.assetReady}/{scene.assetTotal}
+                  </span>
+                </div>
+              )}
+              {scene.cardCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-panel2 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-good"
+                      style={{ width: `${Math.round((scene.signedCards / scene.cardCount) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-muted whitespace-nowrap">
+                    🤖 员工交付 {scene.signedCards}/{scene.cardCount}
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-1">
                 {scene.blueprint.stages.map((s) => {
                   const n = scene.stageCounts[s.name] ?? 0;

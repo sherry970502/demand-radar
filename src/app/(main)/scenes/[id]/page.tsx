@@ -29,6 +29,8 @@ export default function SceneDetailPage() {
   const [cards, setCards] = useState<CardListItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [persona, setPersona] = useState("");
+  /** 交付筛选：'' 全部 / none 未派发 / dispatched / producing / pending_signoff / signed_off */
+  const [workFilter, setWorkFilter] = useState("");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<DraftBlueprint | null>(null);
   const [busy, setBusy] = useState(false);
@@ -130,7 +132,12 @@ export default function SceneDetailPage() {
     return <main className="flex-1 flex items-center justify-center text-muted text-sm">加载中…</main>;
   }
 
-  const shown = persona ? cards.filter((c) => c.persona === persona) : cards;
+  const byPersona = persona ? cards.filter((c) => c.persona === persona) : cards;
+  const shown = workFilter
+    ? byPersona.filter((c) => (workFilter === "none" ? !c.work_status : c.work_status === workFilter))
+    : byPersona;
+  const workCount = (s: string) =>
+    cards.filter((c) => (s === "none" ? !c.work_status : c.work_status === s)).length;
   const stageNames = new Set(scene.blueprint.stages.map((s) => s.name));
   const otherCards = shown.filter((c) => !c.stage || !stageNames.has(c.stage));
   const covered = scene.blueprint.stages.filter((s) =>
@@ -208,6 +215,33 @@ export default function SceneDetailPage() {
           )}
         </div>
       </div>
+
+      {!editing && (
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-muted mr-1">交付：</span>
+          <button
+            onClick={() => setWorkFilter("")}
+            className={`border rounded-lg px-2.5 py-1 ${workFilter === "" ? "border-accent/60 text-accent bg-accent/10" : "border-line text-muted hover:text-foreground"}`}
+          >
+            全部
+          </button>
+          {([
+            ["pending_signoff", "⏳ 待签收", "border-warn/60 text-warn bg-warn/10"],
+            ["signed_off", "🤖 已签收", "border-good/60 text-good bg-good/10"],
+            ["producing", "生产中", "border-sky-400/60 text-sky-300 bg-sky-400/10"],
+            ["dispatched", "已派发", "border-accent/60 text-accent bg-accent/10"],
+            ["none", "未派发", "border-line text-foreground bg-panel2"],
+          ] as const).map(([key, label, activeCls]) => (
+            <button
+              key={key}
+              onClick={() => setWorkFilter(workFilter === key ? "" : key)}
+              className={`border rounded-lg px-2.5 py-1 ${workFilter === key ? activeCls : "border-line text-muted hover:text-foreground"}`}
+            >
+              {label}（{workCount(key)}）
+            </button>
+          ))}
+        </div>
+      )}
 
       {scene.blueprint.personas.length > 0 && !editing && (
         <div className="flex flex-wrap items-center gap-1.5 text-xs">

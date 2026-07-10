@@ -26,8 +26,14 @@ const CARD_COLS = [
   "scene_id",
   "stage",
   "persona",
+  "agent_asset_id",
+  "work_status",
 ];
 const SCENE_COLS = ["id", "name", "description", "blueprint", "created_at", "updated_at"];
+const ASSET_COLS = ["id", "type", "name", "role", "status", "stage_detail", "artifact_url", "trial_url", "structure", "notes", "created_at", "updated_at"];
+const ASSET_CARD_COLS = ["asset_id", "card_id"];
+const ASSET_COMPONENT_COLS = ["agent_asset_id", "component_asset_id"];
+const ASSET_LOG_COLS = ["id", "asset_id", "ts", "actor", "action", "detail"];
 const LOG_COLS = ["id", "card_id", "ts", "actor", "action", "detail"];
 const RUN_COLS = ["id", "trigger_type", "status", "started_at", "finished_at", "summary", "error"];
 
@@ -39,6 +45,10 @@ export async function POST(request: Request) {
     version?: number;
     cards?: Row[];
     scenes?: Row[];
+    assets?: Row[];
+    asset_cards?: Row[];
+    asset_components?: Row[];
+    asset_logs?: Row[];
     card_logs?: Row[];
     runs?: Row[];
     settings?: Row[];
@@ -60,11 +70,15 @@ export async function POST(request: Request) {
   };
 
   const tx = db.transaction(() => {
-    for (const table of ["cards", "scenes", "card_logs", "runs", "settings", "ai_usage"]) {
+    for (const table of ["cards", "scenes", "assets", "asset_cards", "asset_components", "asset_logs", "card_logs", "runs", "settings", "ai_usage"]) {
       db.exec(`DELETE FROM ${table}`);
     }
     insert("cards", CARD_COLS, body.cards ?? []);
     insert("scenes", SCENE_COLS, body.scenes ?? []);
+    insert("assets", ASSET_COLS, body.assets ?? []);
+    insert("asset_cards", ASSET_CARD_COLS, body.asset_cards ?? []);
+    insert("asset_components", ASSET_COMPONENT_COLS, body.asset_components ?? []);
+    insert("asset_logs", ASSET_LOG_COLS, body.asset_logs ?? []);
     insert("card_logs", LOG_COLS, body.card_logs ?? []);
     insert("runs", RUN_COLS, body.runs ?? []);
     insert("settings", ["key", "value"], body.settings ?? []);

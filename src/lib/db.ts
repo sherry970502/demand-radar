@@ -55,6 +55,44 @@ CREATE TABLE IF NOT EXISTS scenes (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS assets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT,
+  status TEXT NOT NULL DEFAULT 'proposed',
+  stage_detail TEXT,
+  artifact_url TEXT,
+  trial_url TEXT,
+  structure TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_assets_type_name ON assets(type, name);
+
+CREATE TABLE IF NOT EXISTS asset_cards (
+  asset_id INTEGER NOT NULL,
+  card_id INTEGER NOT NULL,
+  PRIMARY KEY (asset_id, card_id)
+);
+
+CREATE TABLE IF NOT EXISTS asset_components (
+  agent_asset_id INTEGER NOT NULL,
+  component_asset_id INTEGER NOT NULL,
+  PRIMARY KEY (agent_asset_id, component_asset_id)
+);
+
+CREATE TABLE IF NOT EXISTS asset_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  asset_id INTEGER NOT NULL,
+  ts TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  detail TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_asset_logs_asset ON asset_logs(asset_id);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -95,6 +133,17 @@ function migrate(db: Database.Database) {
     db.exec(`ALTER TABLE cards ADD COLUMN stage TEXT`);
     db.exec(`ALTER TABLE cards ADD COLUMN persona TEXT`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_cards_scene ON cards(scene_id)`);
+  }
+  const assetCols = db.prepare("PRAGMA table_info(assets)").all() as { name: string }[];
+  if (assetCols.length > 0 && !assetCols.some((c) => c.name === "trial_url")) {
+    db.exec(`ALTER TABLE assets ADD COLUMN trial_url TEXT`);
+  }
+  if (assetCols.length > 0 && !assetCols.some((c) => c.name === "structure")) {
+    db.exec(`ALTER TABLE assets ADD COLUMN structure TEXT`);
+  }
+  if (!have.has("agent_asset_id")) {
+    db.exec(`ALTER TABLE cards ADD COLUMN agent_asset_id INTEGER`);
+    db.exec(`ALTER TABLE cards ADD COLUMN work_status TEXT`);
   }
 }
 
