@@ -33,6 +33,8 @@ export default function SceneDetailPage() {
   const [draft, setDraft] = useState<DraftBlueprint | null>(null);
   const [busy, setBusy] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  /** 已发起补齐探索的环节名（探索在后台跑 1-2 分钟，卡片到达后缺口标记自然消失） */
+  const [exploring, setExploring] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -91,6 +93,26 @@ export default function SceneDetailPage() {
     load();
   }
 
+  /** 对一个或多个缺口环节发起定向补齐探索（后台运行） */
+  async function fillGaps(stages: { name: string; description: string }[]) {
+    const focus = stages.map((s) => `${s.name}：${s.description}`).join("\n");
+    setExploring((prev) => new Set([...prev, ...stages.map((s) => s.name)]));
+    const res = await fetch("/api/explore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sceneId, focus }),
+    });
+    if (!res.ok) {
+      setExploring((prev) => {
+        const next = new Set(prev);
+        for (const s of stages) next.delete(s.name);
+        return next;
+      });
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "探索启动失败，请重试");
+    }
+  }
+
   async function removeScene() {
     if (!confirm(`删除场景「${scene?.name}」？卡片不会被删除，只是解除归属。`)) return;
     await fetch(`/api/scenes/${sceneId}`, { method: "DELETE" });
@@ -116,6 +138,10 @@ export default function SceneDetailPage() {
   ).length;
   const total = scene.blueprint.stages.length;
   const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+  const gapStages = scene.blueprint.stages.filter(
+    (s) => !cards.some((c) => c.stage === s.name)
+  );
+  const pendingGaps = gapStages.filter((s) => !exploring.has(s.name));
 
   return (
     <main className="flex-1 flex flex-col gap-4 p-5">
@@ -153,6 +179,19 @@ export default function SceneDetailPage() {
             </>
           ) : (
             <>
+              {pendingGaps.length > 0 && (
+                <button
+                  onClick={() => fillGaps(pendingGaps)}
+                  title={`缺口环节：${pendingGaps.map((s) => s.name).join("、")}`}
+                  className="border border-accent/50 text-accent text-sm rounded-lg px-3 py-2 hover:bg-accent/10"
+                >
+                  🔭 补齐缺口：{pendingGaps.map((s) => s.name).join("、").slice(0, 16)}
+                  {pendingGaps.map((s) => s.name).join("、").length > 16 ? `…等 ${pendingGaps.length} 个` : ""}
+                </button>
+              )}
+              {gapStages.length > 0 && pendingGaps.length === 0 && (
+                <span className="text-xs text-accent animate-pulse px-2">🔭 补齐探索进行中…</span>
+              )}
               <button
                 onClick={startEdit}
                 className="border border-line text-sm rounded-lg px-3 py-2 text-muted hover:text-foreground hover:border-accent/50"
@@ -306,6 +345,20 @@ export default function SceneDetailPage() {
                     <p className="text-[10px] text-muted mt-1 line-clamp-2">{s.description}</p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+                    {isGap && (
+                      exploring.has(s.name) ? (
+                        <p className="text-[11px] text-accent text-center py-2 animate-pulse">
+                          🔭 补齐探索进行中（约 1-2 分钟）…
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => fillGaps([s])}
+                          className="border border-accent/50 text-accent text-xs rounded-lg px-3 py-2 hover:bg-accent/10 mx-4 my-2"
+                        >
+                          🔭 补齐探索
+                        </button>
+                      )
+                    )}
                     {stageCards.length === 0 ? (
                       <p className="text-[11px] text-muted/60 text-center py-6">
                         {isGap ? "尚未收集到该环节的需求" : "当前筛选下无卡片"}

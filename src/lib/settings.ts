@@ -1,4 +1,5 @@
 import { getDb } from "./db";
+import { ANALYSIS_SYSTEM } from "./ai/prompts";
 
 export interface AppSettings {
   daily_run_time: string; // "HH:MM", local time of the server
@@ -7,6 +8,7 @@ export interface AppSettings {
   subreddits: string[];
   research_keywords: string[];
   fit_description: string;
+  analysis_system_prompt: string;
   screening_model: string;
   analysis_model: string;
   collector_reddit_enabled: boolean;
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     "(2) 教育相关场景我们有既有沉淀，优先级上调；" +
     "(3) 我们不是纯 AI 工具——产品也直接给用户提供服务，AI 尚未覆盖、或 AI 可与人工/服务协作完成的场景同样有价值；" +
     "(4) 「创造需求」型场景（用户此前想不到、被展示后才意识到想要，如用父亲的声音/他喜欢的明星声音定制生日歌、给孩子做定制童书）与「已有需求」同等重要——对这类场景，评估其被唤起后的情感价值、吸引力与传播/礼物属性，而不是要求用户已主动表达过需求。",
+  analysis_system_prompt: ANALYSIS_SYSTEM,
   screening_model: "claude-sonnet-5",
   analysis_model: "claude-opus-4-8",
   collector_reddit_enabled: true,

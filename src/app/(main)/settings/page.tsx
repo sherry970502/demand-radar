@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AppSettings } from "@/lib/settings";
+import { ANALYSIS_SYSTEM } from "@/lib/ai/prompts";
 
 const MODEL_PRESETS: { id: string; label: string }[] = [
   { id: "claude-sonnet-5", label: "claude-sonnet-5（快·性价比，初筛推荐）" },
@@ -226,6 +227,36 @@ export default function SettingsPage() {
             className={inputCls}
           />
         </label>
+      </section>
+
+      <section className="bg-panel border border-line rounded-xl p-5 flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-bold">深度分析策略</h2>
+          {settings.analysis_system_prompt !== ANALYSIS_SYSTEM && (
+            <button
+              onClick={() => update("analysis_system_prompt", ANALYSIS_SYSTEM)}
+              className="ml-auto text-xs text-muted hover:text-foreground border border-line rounded-lg px-2.5 py-1"
+            >
+              恢复默认提示词
+            </button>
+          )}
+        </div>
+        <label className="flex flex-col gap-1.5">
+          <span className={labelCls}>
+            深度分析 System Prompt（保存后实时生效，下一次分析即使用新提示词）
+          </span>
+          <textarea
+            rows={16}
+            value={settings.analysis_system_prompt}
+            onChange={(e) => update("analysis_system_prompt", e.target.value)}
+            className={`${inputCls} font-mono text-xs leading-relaxed`}
+          />
+        </label>
+        <p className="text-[11px] text-muted">
+          ⚠ 末尾的 <code>&lt;delivery&gt;</code> 机器可读块说明不要删——系统靠它解析并落库
+          「产品呈现方式」（delivery_mode / skill_name / capabilities）；删掉后报告仍能生成，
+          但这些字段会为空。清空整个文本框则回退到代码内默认提示词。
+        </p>
       </section>
 
       <section className="bg-panel border border-line rounded-xl p-5 flex flex-col gap-4">

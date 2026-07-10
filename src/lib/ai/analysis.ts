@@ -82,7 +82,8 @@ export async function analyzeCard(
     model: settings.analysis_model,
     max_tokens: 16000,
     thinking: { type: "adaptive" },
-    system: ANALYSIS_SYSTEM,
+    // 设置页可编辑的深度分析提示词；清空则回退到代码内默认
+    system: settings.analysis_system_prompt?.trim() || ANALYSIS_SYSTEM,
     tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }],
     messages: [{ role: "user", content: buildAnalysisUser(card, related) }],
   });
